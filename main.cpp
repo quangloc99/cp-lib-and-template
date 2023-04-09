@@ -4,6 +4,10 @@
 
 #include <bits/stdc++.h>
 using namespace std;
+#if (__cplusplus >= 202002)
+namespace R = std::ranges;
+namespace RV = R::views;
+#endif
 
 // #define constexpr(...) (__VA_ARGS__)
 using ll = long long;
