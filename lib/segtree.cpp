@@ -3,7 +3,7 @@ struct segtree {
     struct Data {
         int x;
         Data(int v = 0): x(v) {}
-        Data(const Data& left, Data& right): x(left.x + right.x) {}
+        Data(const Data& left, const Data& right): x(left.x + right.x) {}
     };
     
     int n;
