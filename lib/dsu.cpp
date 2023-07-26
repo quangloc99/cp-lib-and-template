@@ -17,7 +17,7 @@ struct DSU {
         return true;
     }
     
-    int set_size(int u) {
+    int get_size(int u) {
         return -par[find_set(u)];
     }
 };
