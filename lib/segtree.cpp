@@ -1,21 +1,17 @@
 #include <bits/stdc++.h>
-struct segtree {
-    struct Data {
-        int x;
-        Data(int v = 0): x(v) {}
-        Data(const Data& left, const Data& right): x(left.x + right.x) {}
-    };
-    
+
+template<class Data>
+struct Segtree {
     int n;
     std::vector<Data> data;
-    segtree(int n_): n(n_), data(4 * n) {}
+    Segtree(int n_): n(n_), data(4 * n) {}
     template<class T>
-    segtree(int n_, T values): segtree(n_) {
+    Segtree(int n_, const T& values): Segtree(n_) {
         build(1, 0, n, values);
     }
     
     template<class T>
-    void build(int i, int l, int r, T values) {
+    void build(int i, int l, int r, const T& values) {
         if (r - l == 1) {
             data[i] = values[l];
             return ;
@@ -27,37 +23,92 @@ struct segtree {
     }
     
     void push(int i, int l, int r) {
-        // apply lazy here
+        auto old_lazy = data[i].apply_lazy(l, r);
         if (r - l > 1) {
-            // assign lazy here
+            data[2 * i].accept_lazy(old_lazy);
+            data[2 * i + 1].accept_lazy(old_lazy);
         }
-        // clear lazy here
     }
     
-    void do_point(int pos, int i, int l, int r) {
-        /* push(i, l, r); */
-        if (pos >= r or l > pos) return ;
-        if (r - l == 1) {
-            // dot things here
-            return ;
-        }
-        int mid = (l + r) / 2;
-        do_point(pos, 2 * i, l, mid);
-        do_point(pos, 2 * i + 1, mid, r);
-        data[i] = Data(data[2 * i], data[2 * i + 1]);
-    }
-    
-    void do_range(int from, int to, int i, int l, int r) {
+    void update(int from, int to, const auto& lazy, int i, int l, int r) {
         push(i, l, r);
         if (from >= r or l >= to) return ;
-        if (from <= l and r <= to) {
-            // do things here
+        if (r - l == 1) {
+            data[i].accept_lazy(lazy);
             push(i, l, r);
             return ;
         }
         int mid = (l + r) / 2;
-        do_range(from, to, 2 * i, l, mid);
-        do_range(from, to, 2 * i + 1, mid, r);
+        update(from, to, lazy, 2 * i, l, mid);
+        update(from, to, lazy, 2 * i + 1, mid, r);
         data[i] = Data(data[2 * i], data[2 * i + 1]);
     }
+
+    void update(int from, int to, const auto& lazy) {
+        update(from, to, lazy, 1, 0, n);
+    }
+
+    void update(int pos, const auto& lazy) {
+        update(pos, pos + 1, lazy);
+    }
+    
+    Data query(int from, int to, int i, int l, int r) {
+        push(i, l, r);
+        if (from >= r or l >= to) return Data();
+        if (from <= l and r <= to) {
+            return data[i];
+        }
+        int mid = (l + r) / 2;
+        return Data(query(from, to, 2 * i, l, mid), query(from, to, 2 * i + 1, mid, r));
+    }
+
+    Data query(int from, int to) {
+        return query(from, to, 1, 0, n);
+    }
+
+    int partition_point(int from, int to, const Data& pref_acc, const auto& pred, int i, int l, int r) {
+        push(i, l, r);
+        if (from >= r or l >= to) return to;
+        if (r - l == 1) {
+            if (pred(pref_acc, data[i])) return r;
+            return l;
+        }
+        int mid = (l + r) / 2;
+        push(2 * i, l, mid);
+        if (pred(pref_acc, data[2 * i])) {
+            return partition_point(from, to, Data(pref_acc, data[2 * i]), pred, 2 * i + 1, mid, r);
+        } else {
+            return partition_point(from, to, pref_acc, pred, 2 * i, l, mid);
+        }
+    }
+
+    int partition_point(int from, int to, const auto& pred) {
+        return partition_point(from, to, Data(), pred, 1, 0, n);
+    }
 };
+
+struct SumData {
+    int sum, lazy;
+    SumData(int sum_ = 0): sum(sum_) {}
+    SumData(const SumData& l, const SumData& r) {
+        sum = l.sum + r.sum;
+        lazy = 0;
+    }
+    void accept_lazy(int upd) {
+        lazy += upd;
+    }
+    int apply_lazy(int l, int r) {
+        sum += lazy * (r - l);
+        return std::exchange(lazy, 0);  // remember to clear lazy
+    }
+};
+
+void usage() {
+    using namespace std;
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    Segtree<SumData> segtree(10);
+    segtree.update(0, 10, 1);
+    auto x = segtree.query(0, 10);
+    cout << x.sum;
+}
