@@ -9,7 +9,7 @@ namespace R = std::ranges;
 namespace RV = R::views;
 #endif
 
-// #define constexpr(...) (__VA_ARGS__)
+// #define constexpr(...) (__VA_ARGS__){{{
 using ll = long long;
 using ld = long double;
 const ld eps = 1e-8;
@@ -31,7 +31,7 @@ template <typename T> num_range<T> range(T b, T e) { return num_range<T>(b, e); 
 #define all(a) (a).begin(), (a).end()
 #define print_op(...) ostream &operator<<(ostream &out, const __VA_ARGS__ &u)
 // DEBUGING TEMPLETE
-// ////////////////////////////////////////////////////////////////////////{{{
+// ////////////////////////////////////////////////////////////////////////
 // What? You wanted to see how this template works?  Check this out:
 // https://quangloc99.github.io/2021/07/30/my-CP-debugging-template.html
 #define db(val) "[" #val " = " << (val) << "] "
@@ -74,9 +74,9 @@ typename enable_if<!is_same<Con, string>::value, ostream &>::type operator<<(ost
     for (auto beg = con.begin(), it = beg; it != con.end(); ++it)
         out << (it == beg ? "" : ", ") << *it;
     return out << "}";
-}
+}/*}}}*/
 // ACTUAL SOLUTION START HERE
-// ////////////////////////////////////////////////////////////////}}}
+// ////////////////////////////////////////////////////////////////
 
 int main() {
 #ifdef LOCAL
@@ -85,6 +85,15 @@ int main() {
     freopen(".log", "w", stderr);
 #endif
     cin.tie(0)->sync_with_stdio(0);
+
+    int ntest;
+    cin >> ntest;
+    while (ntest--) {
+        int n;
+        cin >> n;
+        vector<ll> a(n);
+        for (auto& i: a) cin >> i;
+    }
 
     return 0;
 }
