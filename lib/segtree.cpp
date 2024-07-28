@@ -3,8 +3,20 @@
 template <class Data> struct Segtree {
     int n;
     std::vector<Data> data;
-    Segtree(int n_) : n(n_), data(4 * n) {}
-    template <class T> Segtree(int n_, const T &values) : Segtree(n_) { build(1, 0, n, values); }
+    Segtree(int n_) : n(n_), data(4 * n) { build_no_values(1, 0, n); }
+    template <class T> Segtree(int n_, const T &values) : n(n_), data(4 * n) {
+        build(1, 0, n, values);
+    }
+
+    void build_no_values(int i, int l, int r) {
+        if (r - l == 1) {
+            return;
+        }
+        int mid = (l + r) / 2;
+        build_no_values(2 * i, l, mid);
+        build_no_values(2 * i + 1, mid, r);
+        data[i] = Data(data[2 * i], data[2 * i + 1]);
+    }
 
     template <class T> void build(int i, int l, int r, const T &values) {
         if (r - l == 1) {
@@ -27,8 +39,9 @@ template <class Data> struct Segtree {
 
     void update(int from, int to, const auto &lazy, int i, int l, int r) {
         push(i, l, r);
-        if (from >= r or l >= to) return;
-        if (r - l == 1) {
+        if (from >= r or l >= to)
+            return;
+        if (from <= l and r <= to) {
             data[i].accept_lazy(lazy);
             push(i, l, r);
             return;
@@ -39,33 +52,43 @@ template <class Data> struct Segtree {
         data[i] = Data(data[2 * i], data[2 * i + 1]);
     }
 
-    void update(int from, int to, const auto &lazy) { update(from, to, lazy, 1, 0, n); }
+    void update(int from, int to, const auto &lazy) {
+        update(from, to, lazy, 1, 0, n);
+    }
 
     void update(int pos, const auto &lazy) { update(pos, pos + 1, lazy); }
 
     Data query(int from, int to, int i, int l, int r) {
         push(i, l, r);
-        if (from >= r or l >= to) return Data();
-        if (from <= l and r <= to) { return data[i]; }
+        if (from >= r or l >= to)
+            return Data();
+        if (from <= l and r <= to) {
+            return data[i];
+        }
         int mid = (l + r) / 2;
-        return Data(query(from, to, 2 * i, l, mid), query(from, to, 2 * i + 1, mid, r));
+        return Data(query(from, to, 2 * i, l, mid),
+                    query(from, to, 2 * i + 1, mid, r));
     }
 
     Data query(int from, int to) { return query(from, to, 1, 0, n); }
 
-    int partition_point(int from, int to, Data &pref_acc, const auto &pred, int i, int l, int r) {
+    int partition_point(int from, int to, Data &pref_acc, const auto &pred,
+                        int i, int l, int r) {
         push(i, l, r);
         int mid = (l + r) / 2;
-        if (from >= r or l >= to) return to;
+        if (from >= r or l >= to)
+            return to;
         if (from <= l and r <= to) {
             if (r - l == 1) {
-                if (pred(pref_acc, data[i])) return r;
+                if (pred(pref_acc, data[i]))
+                    return r;
                 return l;
             }
             push(2 * i, l, mid);
             if (pred(pref_acc, data[2 * i])) {
                 pref_acc = Data(pref_acc, data[2 * i]);
-                return partition_point(from, to, pref_acc, pred, 2 * i + 1, mid, r);
+                return partition_point(from, to, pref_acc, pred, 2 * i + 1, mid,
+                                       r);
             } else {
                 return partition_point(from, to, pref_acc, pred, 2 * i, l, mid);
             }
