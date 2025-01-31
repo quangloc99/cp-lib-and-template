@@ -27,7 +27,9 @@ template <typename T> struct num_range {
     num_itr<T> begin() { return b; }
     num_itr<T> end() { return e; }
 };
-template <typename T> num_range<T> range(T b, T e) { return num_range<T>(b, e); }
+template <typename T> num_range<T> range(T b, T e) {
+    return num_range<T>(b, e);
+}
 #define all(a) (a).begin(), (a).end()
 #define print_op(...) ostream &operator<<(ostream &out, const __VA_ARGS__ &u)
 // DEBUGING TEMPLETE
@@ -52,29 +54,34 @@ struct debug_block {
     }
 };
 #else
-#define clog                                                                                       \
-    if (0) cerr
+#define clog                                                                   \
+    if (0)                                                                     \
+    cerr
 #define DB(...)
 #endif
 
 template <class U, class V> print_op(pair<U, V>) {
     return out << "(" << u.first << ", " << u.second << ")";
 }
-template <size_t i, class T> ostream &print_tuple_utils(ostream &out, const T &tup) {
+template <size_t i, class T>
+ostream &print_tuple_utils(ostream &out, const T &tup) {
     if constexpr (i == tuple_size<T>::value)
         return out << ")";
     else
-        return print_tuple_utils<i + 1, T>(out << (i ? ", " : "(") << get<i>(tup), tup);
+        return print_tuple_utils<i + 1, T>(
+            out << (i ? ", " : "(") << get<i>(tup), tup);
 }
-template <class... U> print_op(tuple<U...>) { return print_tuple_utils<0, tuple<U...>>(out, u); }
+template <class... U> print_op(tuple<U...>) {
+    return print_tuple_utils<0, tuple<U...>>(out, u);
+}
 template <class Con, class = decltype(begin(declval<Con>()))>
-typename enable_if<!is_same<Con, string>::value, ostream &>::type operator<<(ostream &out,
-                                                                             const Con &con) {
+typename enable_if<!is_same<Con, string>::value, ostream &>::type
+operator<<(ostream &out, const Con &con) {
     out << "{";
     for (auto beg = con.begin(), it = beg; it != con.end(); ++it)
         out << (it == beg ? "" : ", ") << *it;
     return out << "}";
-}/*}}}*/
+} /*}}}*/
 // ACTUAL SOLUTION START HERE
 // ////////////////////////////////////////////////////////////////
 
@@ -89,10 +96,12 @@ int main() {
     int ntest;
     cin >> ntest;
     while (ntest--) {
+        DB();
         int n;
         cin >> n;
         vector<ll> a(n);
-        for (auto& i: a) cin >> i;
+        for (auto &i : a)
+            cin >> i;
     }
 
     return 0;
