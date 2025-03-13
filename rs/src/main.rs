@@ -7,8 +7,8 @@ use std::{
     str::*,
 };
 
-macro_rules! dbg { ($($arg:tt)*) => { #[cfg(LOCAL)] { std::dbg!($($arg)*); } }; }
-macro_rules! eprintln { ($($arg:tt)*) => { #[cfg(LOCAL)] { std::eprintln!($($arg)*); } }; }
+macro_rules! dbg { ($($arg:tt)*) => { if cfg!(LOCAL) { std::dbg!($($arg)*); } }; }
+macro_rules! eprintln { ($($arg:tt)*) => { if cfg!(LOCAL) { std::eprintln!($($arg)*); } }; }
 
 fn main() {
     let mut scan = Scan::new();
@@ -18,7 +18,8 @@ fn main() {
 
     // let ntest = 1;
     let ntest: usize = scan.next();
-    for _ in 0..ntest {
+    for testcase in 1..=ntest {
+        eprintln!("==== testcase {testcase} ====");
         let n: usize = scan.next();
         let a: Vec<usize> = (0..n).map(|_| scan.next()).collect();
     }
