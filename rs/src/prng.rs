@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-fn create_prng(seed: u64) -> impl FnMut() -> u64 {
+pub fn create_prng(seed: u64) -> impl FnMut() -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::Hasher;
     let mut hasher = DefaultHasher::new();
@@ -12,7 +12,7 @@ fn create_prng(seed: u64) -> impl FnMut() -> u64 {
     }
 }
 
-fn seed_from_time_ms() -> u64 {
+pub fn seed_from_time_ms() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     return SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64;
 }

@@ -1,7 +1,9 @@
 pub mod dsu;
+pub mod exgcd;
 pub mod graph_traits;
 pub mod kuhn;
 pub mod modint;
+pub mod number_trait;
 pub mod prng;
 pub mod segtree;
 pub mod sscanf;
