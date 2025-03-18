@@ -7,23 +7,30 @@ use std::{
     str::*,
 };
 
-macro_rules! dbg { ($($arg:tt)*) => { if cfg!(LOCAL) { std::dbg!($($arg)*); } }; }
-macro_rules! eprintln { ($($arg:tt)*) => { if cfg!(LOCAL) { std::eprintln!($($arg)*); } }; }
+static mut DBG_INDENT: usize = 0;
+#[rustfmt::skip]
+macro_rules! DB { () => { let _debug_block = DBBlock::new(); }; }
+macro_rules! eprintln { ($($arg:tt)*) => { if cfg!(LOCAL) { unsafe{std::eprint!("{}", "  ".repeat(DBG_INDENT));} std::eprintln!($($arg)*); } }; }
+macro_rules! dbg { ($($arg:tt),*) => { eprintln!(concat!($("[", stringify!($arg), " = {:?}] "),*) $(, $arg)*) }}
 
 fn main() {
     let mut scan = Scan::new();
     // let mut writer = stdout();  // for interactive
     let stdout = stdout().lock();
+    #[allow(unused)]
     let mut writer = std::io::BufWriter::new(stdout);
 
     // let ntest = 1;
-    let ntest: usize = scan.next();
-    for testcase in 1..=ntest {
-        eprintln!("==== testcase {testcase} ====");
+    let num_test: usize = scan.next();
+    for test_case in 1..=num_test {
+        DB!();
+        dbg!(test_case);
         let n: usize = scan.next();
         let a: Vec<usize> = (0..n).map(|_| scan.next()).collect();
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
 //{{{
 struct Scan {
     stdin: std::io::StdinLock<'static>,
@@ -63,18 +70,17 @@ impl Scan {
     }
 }
 
-// Helpers
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[allow(dead_code)]
-struct IOrd<T>(T);
-impl<T: Ord> Ord for IOrd<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.0.cmp(&self.0)
+pub struct DBBlock;
+#[rustfmt::skip]
+impl DBBlock {
+    pub fn new() -> Self {
+        if cfg!(LOCAL) { eprintln!("{{"); unsafe { DBG_INDENT += 1; } }
+        Self {}
     }
 }
-
-impl<T: PartialOrd> PartialOrd for IOrd<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        other.0.partial_cmp(&self.0)
+#[rustfmt::skip]
+impl Drop for DBBlock {
+    fn drop(&mut self) {
+        if cfg!(LOCAL) { unsafe { DBG_INDENT -= 1; } eprintln!("}}"); }
     }
 } //}}}
