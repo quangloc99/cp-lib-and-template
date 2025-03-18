@@ -1,6 +1,7 @@
 pub mod dsu;
 pub mod exgcd;
 pub mod graph_traits;
+pub mod iord;
 pub mod kuhn;
 pub mod modint;
 pub mod number_trait;
