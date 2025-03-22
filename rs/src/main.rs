@@ -11,7 +11,7 @@ static mut DBG_INDENT: usize = 0;
 #[rustfmt::skip]
 macro_rules! DB { () => { let _debug_block = DBBlock::new(); }; }
 macro_rules! eprintln { ($($arg:tt)*) => { if cfg!(LOCAL) { unsafe{std::eprint!("{}", "  ".repeat(DBG_INDENT));} std::eprintln!($($arg)*); } }; }
-macro_rules! dbg { ($($arg:tt),*) => { eprintln!(concat!($("[", stringify!($arg), " = {:?}] "),*) $(, $arg)*) }}
+macro_rules! dbg { ($($arg:expr),*) => { eprintln!(concat!($("[", stringify!($arg), " = {:?}] "),*) $(, $arg)*) }}
 
 fn main() {
     let mut scan = Scan::new();
