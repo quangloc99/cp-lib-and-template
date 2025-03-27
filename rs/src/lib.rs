@@ -1,3 +1,4 @@
+pub mod binom;
 pub mod dsu;
 pub mod exgcd;
 pub mod graph_traits;
