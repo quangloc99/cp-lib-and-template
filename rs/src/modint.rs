@@ -13,7 +13,7 @@ mod modint {
         fn m() -> usize { M }
     }
 
-    #[derive(Clone, Copy, Eq, PartialEq)]
+    #[derive(Clone, Copy, Eq, PartialEq, Default)]
     pub struct ModInt<Mod: Modulus>(pub usize, pub Mod);
 
     #[allow(dead_code)]
@@ -64,7 +64,7 @@ use modint::*;
 
 #[allow(dead_code)]
 type Mint = ModInt<ConstModulus<998_244_353>>;
-// type Mint = ModInt<ConstModulus<1_000_000_7>>;
+// type Mint = ModInt<ConstModulus<1_000_000_007>>;
 
 #[cfg(test)]
 mod test {
