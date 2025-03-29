@@ -1,5 +1,6 @@
 pub mod binom;
 pub mod dsu;
+pub mod dsu_rollback;
 pub mod exgcd;
 pub mod graph_traits;
 pub mod iord;
