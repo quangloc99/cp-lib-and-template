@@ -5,6 +5,7 @@ pub mod exgcd;
 pub mod fenwick;
 pub mod graph_traits;
 pub mod iord;
+pub mod iterative_segtree;
 pub mod kuhn;
 pub mod modint;
 pub mod number_trait;
