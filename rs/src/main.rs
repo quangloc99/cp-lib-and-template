@@ -1,4 +1,4 @@
-#![allow(unexpected_cfgs, unused_macros, unused_imports)]
+#![allow(unexpected_cfgs, unused_imports, unused_macros)]
 use std::{
     cmp::*,
     collections::*,
@@ -20,7 +20,7 @@ fn main() {
     #[allow(unused)]
     let mut writer = std::io::BufWriter::new(stdout);
 
-    // let ntest = 1;
+    // let num_test = 1;
     let num_test: usize = scan.next();
     for test_case in 1..=num_test {
         DB!();
