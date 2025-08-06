@@ -1,4 +1,5 @@
 pub mod binom;
+pub mod dinic;
 pub mod dsu;
 pub mod dsu_rollback;
 pub mod exgcd;
