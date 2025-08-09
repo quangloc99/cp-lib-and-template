@@ -30,6 +30,10 @@ impl<Num: Clone + Mul<Output = Num> + Div<Output = Num> + From<usize>> Binom<Num
     }
 
     pub fn divide(&self, sum_part: usize, num_part: usize) -> Num {
-        self.calc(sum_part + num_part - 1, num_part - 1)
+        match (sum_part, num_part) {
+            (0, 0) => Num::from(1),
+            (_, 0) => Num::from(0),
+            (_, _) => self.calc(sum_part + num_part - 1, num_part - 1),
+        }
     }
 }
