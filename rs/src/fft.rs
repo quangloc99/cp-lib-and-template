@@ -114,3 +114,35 @@ pub mod test_fft {
         c
     }
 }
+
+/*
+// Derivation from Cooley-Tukey FFT
+//
+// res[i] = f(omega^i)
+// - mul by omega is rotating ccw
+// - mul by omega^(n/2) is mul by -1
+// f(omega^k) = even(omega^(2 * k)) + omega^k * odd(omega^(2 * k))
+//            = even((omega ^ 2)^k) + omega^k * odd((omega ^ 2)^k)
+// for k > n / 2:
+// even((omega^2)^k) = even((omega^2)^(k - n / 2))
+// omega^k * odd((omega^2)^k) = -omega^(k - n / 2) * odd((omega^2)^(k - n / 2))
+fn fft(a: Vec, omega) -> Vec {
+    if a.len() == 1 {
+        return a;
+    }
+    let even, odd = /* split by position */;
+    let even = fft(even, omega * omega);
+    let odd = fft(odd, omega * omega);
+
+    let omega = w(a.len());
+    let mut w = 1;
+
+    let res = vec![0; a.len()];
+    for i in 0..a.len() / 2 {
+        res[i] = even[i] + odd[i] * w;
+        res[i + a.len() / 2] = even[i] - odd[i] * w;
+        w *= omega;
+    }
+    return res;
+}
+*/
