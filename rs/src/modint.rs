@@ -1,5 +1,5 @@
 #[rustfmt::skip]
-mod modint {
+pub mod modint {
     use std::ops::*;
     use crate::def_op;
 
