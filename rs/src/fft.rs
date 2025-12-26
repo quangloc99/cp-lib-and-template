@@ -1,6 +1,5 @@
 use crate::modint::modint::*;
 use crate::number_trait::*;
-use std::fmt::Debug;
 
 trait FFTOmega: Number {
     fn omega(lv: usize) -> Self;
@@ -31,12 +30,10 @@ fn fft<Num: FFTOmega>(a: &mut [Num]) {
     for lv in 1..=l {
         let s = 1 << lv;
         let omega = Num::omega(lv);
-        eprintln!("lv={}, s={}, omega={}", lv, s, omega);
         for start in (0..n).step_by(s) {
             let mut w = Num::one();
             for (i, j) in (s / 2..s).enumerate() {
                 let (u, v) = (a[i + start], a[j + start] * w);
-                eprintln!("  start={}, i={}, j={}, w={}, u={}, v={}", start, i, j, w, u, v);
                 (a[i + start], a[j + start]) = (u + v, u - v);
                 w = w * omega;
             }
@@ -44,15 +41,13 @@ fn fft<Num: FFTOmega>(a: &mut [Num]) {
     }
 }
 
-fn convolution<Num: FFTOmega + Debug>(mut a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
+fn convolution<Num: FFTOmega>(mut a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
     let s = a.len() + b.len() - 1;
     let n = s.next_power_of_two();
     a.resize(n, Num::zero());
     b.resize(n, Num::zero());
     fft(&mut a);
-    dbg!(&a);
     fft(&mut b);
-    dbg!(&b);
     let inv = Num::one() / Num::from(n);
     for i in 0..n {
         a[i] = a[i] * b[i] * inv;
@@ -60,7 +55,6 @@ fn convolution<Num: FFTOmega + Debug>(mut a: Vec<Num>, mut b: Vec<Num>) -> Vec<N
     a[1..].reverse();
     fft(&mut a);
     a.resize(s, Num::zero());
-    dbg!(&a);
     a
 }
 
