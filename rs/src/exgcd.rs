@@ -1,7 +1,7 @@
 use crate::number_trait::*;
 
 #[allow(dead_code)]
-fn gcd<T: Number>(mut u: T, mut v: T) -> T {
+fn gcd<T: NumberWithRem>(mut u: T, mut v: T) -> T {
     while !v.is_zero() {
         (u, v) = (v, u % v);
     }
@@ -9,7 +9,7 @@ fn gcd<T: Number>(mut u: T, mut v: T) -> T {
 }
 
 #[allow(dead_code)]
-fn lcm<T: Number>(u: T, v: T) -> T {
+fn lcm<T: NumberWithRem>(u: T, v: T) -> T {
     if u.is_zero() || v.is_zero() {
         return T::zero();
     }
@@ -20,7 +20,7 @@ fn lcm<T: Number>(u: T, v: T) -> T {
 // - g = gcd(u, v)
 // - x, y must satisfies: (u * x + v * y) % m == g % m
 #[allow(dead_code)]
-fn exgcd<T: Number>(u: T, v: T, m: T) -> (T, T, T) {
+fn exgcd<T: NumberWithRem>(u: T, v: T, m: T) -> (T, T, T) {
     // u * x + v * y == g
     // v * x1 + (u % v) * y1 == g
     // (v * (u / v) + u % v) * x + v * y == g
@@ -42,7 +42,7 @@ fn exgcd<T: Number>(u: T, v: T, m: T) -> (T, T, T) {
 // Return x and m / gcd(a, m)
 // Note: passing b == 1 to find modulo inversion
 #[allow(dead_code)]
-fn solve_congruent<T: Number>(a: T, b: T, m: T) -> Option<(T, T)> {
+fn solve_congruent<T: NumberWithRem>(a: T, b: T, m: T) -> Option<(T, T)> {
     if a.is_zero() {
         return b.is_zero().then_some((T::zero(), T::one()));
     }
@@ -56,7 +56,7 @@ fn solve_congruent<T: Number>(a: T, b: T, m: T) -> Option<(T, T)> {
 // k * b = c (mod w)
 // This is basically CRT with extra steps
 #[allow(dead_code)]
-fn solve_congruent_2<T: Number>(a: T, r: T, h: T, b: T, c: T, w: T) -> Option<T> {
+fn solve_congruent_2<T: NumberWithRem>(a: T, r: T, h: T, b: T, c: T, w: T) -> Option<T> {
     let (r, h) = solve_congruent(a, r, h)?;
     let (c, w) = solve_congruent(b, c, w)?;
     // k = r (mod h)
