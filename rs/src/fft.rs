@@ -41,20 +41,31 @@ fn fft<Num: FFTOmega>(a: &mut [Num]) {
     }
 }
 
-fn convolution<Num: FFTOmega>(mut a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
+fn convolution<Num: FFTOmega>(a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
     let s = a.len() + b.len() - 1;
     let n = s.next_power_of_two();
-    a.resize(n, Num::zero());
     b.resize(n, Num::zero());
-    fft(&mut a);
     fft(&mut b);
+    partial_conv(a, &b)
+}
+
+/// Here b is already convoluted. Can help save one fft and also memory
+fn partial_conv<Num: FFTOmega>(mut a: Vec<Num>, conv_b: &[Num]) -> Vec<Num> {
+    let n = conv_b.len();
+    assert!(n.is_power_of_two());
+    assert!(a.len() <= n);
+    a.resize(n, Num::zero());
+    fft(&mut a);
     let inv = Num::one() / Num::from(n);
     for i in 0..n {
-        a[i] = a[i] * b[i] * inv;
+        a[i] = a[i] * conv_b[i] * inv;
     }
     a[1..].reverse();
     fft(&mut a);
-    a.resize(s, Num::zero());
+
+    while a.last() == Some(&Num::zero()) {
+        a.pop();
+    }
     a
 }
 
@@ -110,6 +121,10 @@ pub mod test_fft {
             for j in 0..b.len() {
                 c[i + j] += a[i] * b[j];
             }
+        }
+
+        while c.last() == Some(&Mint::zero()) {
+            c.pop();
         }
         c
     }
