@@ -1,20 +1,26 @@
 use crate::modint::modint::*;
 use crate::number_trait::*;
 
-trait FFTOmega: Number {
-    fn omega(lv: usize) -> Self;
+trait FFTOmegaNum: Number {
+    fn omega(max_lv: usize) -> impl FFTOmega<Self>;
 }
 
-fn fft<Num: FFTOmega>(a: &mut [Num]) {
+trait FFTOmega<Num: FFTOmegaNum> {
+    fn set_lv(&mut self, lv: usize) -> Num;
+    fn next(&mut self, w: &mut Num);
+}
+
+fn fft<Num: FFTOmegaNum>(a: &mut [Num]) {
     let n = a.len();
     let l = n.trailing_zeros() as usize;
     assert!(n == 1 << l);
 
+    let a = a.as_mut_ptr();
     {
         let mut rev_i = 0;
         for i in 0..n {
             if rev_i < i {
-                (a[i], a[rev_i]) = (a[rev_i], a[i]);
+                unsafe { (*a.add(i), *a.add(rev_i)) = (*a.add(rev_i), *a.add(i)) }
             }
             let mut bit = 1 << l;
             loop {
@@ -27,21 +33,26 @@ fn fft<Num: FFTOmega>(a: &mut [Num]) {
         }
     }
 
+    let mut omega = Num::omega(l);
+
     for lv in 1..=l {
         let s = 1 << lv;
-        let omega = Num::omega(lv);
         for start in (0..n).step_by(s) {
-            let mut w = Num::one();
-            for (i, j) in (s / 2..s).enumerate() {
-                let (u, v) = (a[i + start], a[j + start] * w);
-                (a[i + start], a[j + start]) = (u + v, u - v);
-                w = w * omega;
+            unsafe {
+                let mut w = omega.set_lv(lv);
+                let chunk = a.add(start);
+                for (i, j) in (s / 2..s).enumerate() {
+                    let (au, av) = (chunk.add(i), chunk.add(j));
+                    let (u, v) = (*au, *av * w);
+                    (*au, *av) = (u + v, u - v);
+                    omega.next(&mut w);
+                }
             }
         }
     }
 }
 
-fn convolution<Num: FFTOmega>(a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
+fn convolution<Num: FFTOmegaNum>(a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
     let s = a.len() + b.len() - 1;
     let n = s.next_power_of_two();
     b.resize(n, Num::zero());
@@ -50,7 +61,7 @@ fn convolution<Num: FFTOmega>(a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
 }
 
 /// Here b is already convoluted. Can help save one fft and also memory
-fn partial_conv<Num: FFTOmega>(mut a: Vec<Num>, conv_b: &[Num]) -> Vec<Num> {
+fn partial_conv<Num: FFTOmegaNum>(mut a: Vec<Num>, conv_b: &[Num]) -> Vec<Num> {
     let n = conv_b.len();
     assert!(n.is_power_of_two());
     assert!(a.len() <= n);
@@ -69,15 +80,28 @@ fn partial_conv<Num: FFTOmega>(mut a: Vec<Num>, conv_b: &[Num]) -> Vec<Num> {
     a
 }
 
-impl FFTOmega for ModInt<ConstModulus<998_244_353>> {
-    fn omega(lv: usize) -> Self {
-        // For p < 2^30 there is also e.g. 5 << 25, 7 << 26, 479 << 21
-        // and 483 << 21 (same root). The last two are > 10^9.
-
-        let pw = Self::m() >> lv; // we actually need (Self::m() - 1) >> lv, but we never touch lv == 0
-        Self::from(62).pow(pw)
+#[rustfmt::skip]
+macro_rules! ModIntFFTOmegaNumImpl {
+    ($(($MOD:expr, $ROOT:expr))*) => {
+        $(impl FFTOmegaNum for ModInt<ConstModulus<$MOD>> {
+            fn omega(_lv: usize) -> impl FFTOmega<Self> {
+                type Mint = ModInt<ConstModulus<$MOD>>;
+                struct Omega { precal: &'static [Mint], omega: Mint, }
+                impl FFTOmega<Mint> for Omega {
+                    fn set_lv(&mut self, lv: usize) -> Mint { self.omega = self.precal[lv]; Mint::one() }
+                    fn next(&mut self, w: &mut Mint) { *w *= self.omega; }
+                }
+                use std::sync::OnceLock;
+                static PRECAL: OnceLock<Vec<Mint>> = OnceLock::<Vec<Mint>>::new();
+                let precal = PRECAL.get_or_init(|| (0..32).map(|i| Mint::from($ROOT).pow($MOD >> i)).collect());
+                Omega { precal, omega: Mint::default() }
+            }
+        })*
     }
 }
+
+// the last 2 are > 10^9
+ModIntFFTOmegaNumImpl! {(998_244_353, 62) ({5 << 25 + 1}, 62) ({7 << 26 + 1}, 62) ({479 << 21 + 1}, 62) ({483 << 21 + 1}, 62)}
 
 #[cfg(test)]
 pub mod test_fft {
