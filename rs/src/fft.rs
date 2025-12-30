@@ -3,7 +3,7 @@ use crate::number_trait::*;
 
 pub trait FFTOmegaNum: Number {
     type Omega: FFTOmega<Self>;
-    fn omega() -> Self::Omega;
+    fn omega(max_lv: usize) -> Self::Omega;
 }
 
 #[rustfmt::skip]
@@ -14,20 +14,30 @@ pub trait FFTOmega<Num: FFTOmegaNum> {
 
 #[rustfmt::skip]
 struct FFT<Num: FFTOmegaNum> {
+    rev: Vec<usize>,
     omega: Num::Omega,
 }
 
 #[rustfmt::skip]
+#[allow(dead_code)]
 impl<Num: FFTOmegaNum> FFT<Num> {
-    pub fn new() -> Self { Self { omega: Num::omega() } }
+    pub fn new(max_lv: usize) -> Self {
+        let max_lv = max_lv.max(1);
+        let mut rev = vec![0; 1 << max_lv];
+        for i in 0..rev.len() {
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (max_lv - 1));
+        }
+        Self { omega: Num::omega(max_lv), rev }
+    }
 
     pub fn fft(&self, a: &mut [Num]) {
         let n = a.len();
         let l = n.trailing_zeros() as usize;
         assert!(n == 1 << l);
 
+        let shift = self.rev.len().trailing_zeros() as usize - l;
         for i in 1..n {
-            let rev_i = i.reverse_bits() >> (usize::BITS as usize - l);
+            let rev_i = self.rev[i] >> shift;
             if rev_i < i { a.swap(i, rev_i); }
         }
 
@@ -101,13 +111,14 @@ impl<M: 'static + Modulus> FFTOmega<ModInt<M>> for MintOmega<M> where ModInt<M>:
 
 macro_rules! ModIntFFTOmegaNumImpl {
     ($(($MOD:expr, $ROOT:expr))*) => {
-        $(impl FFTOmegaNum for ModInt<ConstModulus<$MOD>> {
-            type Omega = MintOmega<ConstModulus<$MOD>>;
-            fn omega() -> Self::Omega {
-                type Mint = ModInt<ConstModulus<$MOD>>;
-                const MAX_LV: u32 = ($MOD - 1usize).trailing_zeros();
-                let mut precal = vec![Mint::one(); 1 << MAX_LV];
-                for lv in 0..MAX_LV {
+        $(impl FFTOmegaNum for ModInt<MontgomeryModulus<$MOD>> {
+            type Omega = MintOmega<MontgomeryModulus<$MOD>>;
+            fn omega(max_lv: usize) -> Self::Omega {
+                let max_lv = max_lv + 1;
+                type Mint = ModInt<MontgomeryModulus<$MOD>>;
+                assert!(max_lv <= ($MOD - 1usize).trailing_zeros() as usize);
+                let mut precal = vec![Mint::one(); 1 << max_lv];
+                for lv in 0..max_lv {
                     let omega = Mint::from($ROOT).pow($MOD as usize >> lv);
                     for i in ((1 << lv) + 1)..2 << lv { precal[i] = precal[i - 1] * omega; }
                 }
@@ -118,14 +129,14 @@ macro_rules! ModIntFFTOmegaNumImpl {
 }
 
 // the last 2 are > 10^9
-ModIntFFTOmegaNumImpl! {(998_244_353, 62) ({5 << 25 + 1}, 62) ({7 << 26 + 1}, 62) ({479 << 21 + 1}, 62) ({483 << 21 + 1}, 62)}
+ModIntFFTOmegaNumImpl! {(998_244_353, 3) ({5 << 25 + 1}, 62) ({7 << 26 + 1}, 62) ({479 << 21 + 1}, 62) ({483 << 21 + 1}, 62)}
 
 #[cfg(test)]
 pub mod test_fft {
     use super::super::prng::*;
     use super::*;
 
-    type Mint = ModInt<ConstModulus<998_244_353>>;
+    type Mint = ModInt<MontgomeryModulus<998_244_353>>;
 
     #[test]
     fn test_fft_convolution_very_small() {
@@ -143,7 +154,7 @@ pub mod test_fft {
     }
 
     fn _test(num_cases: usize, n_max: usize, val_max: usize) {
-        let fft = FFT::<Mint>::new();
+        let fft = FFT::<Mint>::new(20);
         for testcase in 0..num_cases {
             let mut rng = create_prng(testcase as u64);
             let n = (rng() as usize % n_max) + 1;
