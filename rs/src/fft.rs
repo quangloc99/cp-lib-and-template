@@ -57,6 +57,8 @@ impl<Num: FFTOmegaNum> FFT<Num> {
     }
 
     pub fn fft_convolution(&self, a: Vec<Num>, mut b: Vec<Num>) -> Vec<Num> {
+        if a.is_empty() { return a; }
+        if b.is_empty() { return b; }
         let s = a.len() + b.len() - 1;
         let n = s.next_power_of_two();
         b.resize(n, Num::zero());
@@ -64,14 +66,14 @@ impl<Num: FFTOmegaNum> FFT<Num> {
         self.partial_conv(a, &b)
     }
 
-    /// Here b is already convoluted. Can help save one fft and also memory
+    /// Here b is already convoluted. Can help save one fft and also memory. b must not be empty tho.
     pub fn partial_conv(&self, mut a: Vec<Num>, conv_b: &[Num]) -> Vec<Num> {
         let n = conv_b.len();
         assert!(n.is_power_of_two() && a.len() <= n);
         a.resize(n, Num::zero());
         if n == 1 {
             a[0] = a[0] * conv_b[0];
-        } else {
+        } else if n >= 2 {
             self.fft(&mut a);
             let inv = Num::one() / Num::from(n);
             (a[0], a[n / 2]) = (a[0] * conv_b[0] * inv, a[n / 2] * conv_b[n / 2] * inv);
@@ -88,7 +90,8 @@ impl<Num: FFTOmegaNum> FFT<Num> {
 
     pub fn brute_force_convolution(&self, mut a: Vec<Num>, b: Vec<Num>) -> Vec<Num> {
         if a.len() < b.len() { return self.brute_force_convolution(b, a); }
-        if a.is_empty() || b.is_empty() { return a; }
+        if a.is_empty() { return a; }
+        if b.is_empty() { return b; }
         let (max_ai, s) = (a.len() - 1, a.len() + b.len() - 1);
         a.resize(s, Num::zero());
         for i in (0..s).rev() {
@@ -157,8 +160,8 @@ pub mod test_fft {
         let fft = FFT::<Mint>::new(20);
         for testcase in 0..num_cases {
             let mut rng = create_prng(testcase as u64);
-            let n = (rng() as usize % n_max) + 1;
-            let m = (rng() as usize % n_max) + 1;
+            let n = rng() as usize % n_max;
+            let m = rng() as usize % n_max;
             let a: Vec<Mint> = (0..n).map(|_| Mint::from(rng() as usize % val_max)).collect();
             let b: Vec<Mint> = (0..m).map(|_| Mint::from(rng() as usize % val_max)).collect();
             let expected = checker_convolution(&a, &b);
@@ -167,13 +170,16 @@ pub mod test_fft {
             assert_eq!(expected, actual, "testing\na={:?}\nb={:?}\ntestcase={}", a, b, testcase);
             assert_eq!(
                 expected, actual_fft_only,
-                "testing\na={:?}\nb={:?}\ntestcase={}",
+                "testing (fft only)\na={:?}\nb={:?}\ntestcase={}",
                 a, b, testcase
             );
         }
     }
 
     fn checker_convolution(a: &[Mint], b: &[Mint]) -> Vec<Mint> {
+        if a.is_empty() || b.is_empty() {
+            return vec![];
+        }
         let s = a.len() + b.len() - 1;
         let mut c = vec![Mint::zero(); s];
         for i in 0..a.len() {
