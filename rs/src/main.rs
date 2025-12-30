@@ -34,13 +34,34 @@ fn main() {
 //{{{
 struct Scan {
     stdin: std::io::StdinLock<'static>,
-    buff: Vec<String>,
+    buff: Vec<u8>,
+    pos: usize,
 }
 #[allow(dead_code)]
 #[allow(unused_variables)]
 impl Scan {
     fn new() -> Self {
-        return Self { stdin: std::io::stdin().lock(), buff: vec![] };
+        return Self { stdin: std::io::stdin().lock(), buff: vec![], pos: 0 };
+    }
+
+    fn next_token(&mut self) -> Option<&[u8]> {
+        while self.pos < self.buff.len() && self.buff[self.pos].is_ascii_whitespace() {
+            self.pos += 1;
+        }
+        if self.pos >= self.buff.len() {
+            self.buff.clear();
+            self.pos = 0;
+            if self.stdin.read_until(b'\n', &mut self.buff).is_err() {
+                return None;
+            }
+            return self.next_token();
+        }
+        let start = self.pos;
+        while self.pos < self.buff.len() && !self.buff[self.pos].is_ascii_whitespace() {
+            self.pos += 1;
+        }
+        let token = &self.buff[start..self.pos];
+        return Some(token);
     }
 
     fn next<T: FromStr>(&mut self) -> T {
@@ -48,15 +69,9 @@ impl Scan {
     }
 
     fn next_opt<T: FromStr>(&mut self) -> Option<T> {
-        if let Some(token) = self.buff.pop() {
-            return token.parse().ok();
-        }
-        if let Some(line) = self.read_line() {
-            self.buff = line.split_ascii_whitespace().map(String::from).rev().collect();
-            return self.next_opt();
-        } else {
-            return None;
-        }
+        let token = self.next_token()?;
+        let s = unsafe { std::str::from_utf8_unchecked(token) };
+        return s.parse::<T>().ok();
     }
 
     fn read_line(&mut self) -> Option<String> {
