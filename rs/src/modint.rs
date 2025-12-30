@@ -11,7 +11,18 @@ pub mod modint {
     #[derive(Clone, Copy, PartialEq, Eq, Default)]
     pub struct ConstModulus<const M: u32>;
     impl<const M: u32> ConstModulus<M> {}
-    impl<const M: u32> Modulus for ConstModulus<M> { fn m() -> u32{ M } }
+    impl<const M: u32> ConstModulus<M> {
+        const IM: u64 = ((1u128 << 64) / (M as u128)) as u64;
+    }
+    impl<const M: u32> Modulus for ConstModulus<M> {
+        fn m() -> u32{ M }
+        fn reduce(x: u64) -> u32 {
+            let q = ((Self::IM as u128 * x as u128) >> 64) as u64;
+            let mut r = x.wrapping_sub(q.wrapping_mul(M as u64));
+            if r >= M as u64 { r = r.wrapping_sub(M as u64); }
+            r as u32
+        }
+    }
 
     #[derive(Clone, Copy, Eq, PartialEq, Default)]
     pub struct ModInt<Mod: Modulus>(pub u32, pub Mod);
@@ -24,7 +35,7 @@ pub mod modint {
             let mut result = Self::raw(1);
             while e > 0 {
                 if e & 1 == 1 { result *= self; }
-                self *= self ;
+                self *= self;
                 e >>= 1;
             }
             result
@@ -34,7 +45,7 @@ pub mod modint {
 
     def_op!(ModInt::<Mod: Modulus>: Add::add | AddAssign::add_assign => (&mut self, rhs) { self.0 += rhs.into().0; if self.0 >= Mod::m() { self.0 -= Mod::m(); } });
     def_op!(ModInt::<Mod: Modulus>: Sub::sub | SubAssign::sub_assign => (&mut self, rhs) { self.0 = self.0.wrapping_sub(rhs.into().0); if self.0 >= Mod::m() { self.0 = self.0.wrapping_add(Mod::m()); } });
-    def_op!(ModInt::<Mod: Modulus>: Mul::mul | MulAssign::mul_assign => (&mut self, rhs) { self.0 = Mod::reduce((self.0 as u64) * (rhs.into().0 as u64)) });
+    def_op!(ModInt::<Mod: Modulus>: Mul::mul | MulAssign::mul_assign => (&mut self, rhs) { self.0 = Mod::reduce((self.0 as u64).wrapping_mul(rhs.into().0 as u64)) });
     def_op!(ModInt::<Mod: Modulus>: Div::div | DivAssign::div_assign => (&mut self, rhs) { *self *= rhs.into().inv(); });
 
     impl<Mod: Modulus> From<String> for ModInt<Mod> { fn from(s: String) -> Self { s.parse::<usize>().unwrap().into() } }
