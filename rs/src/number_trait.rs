@@ -29,13 +29,13 @@ macro_rules! def_op {
             Rhs: Into<$type$(< $($lt),+ >)?>
         > std::ops::$trait<Rhs> for $type$(< $($lt),+ >)? {
             type Output = Self;
-            fn $fn(mut self, rhs: Rhs) -> Self { self.$a_fn(rhs); self }
+            #[inline(always)] fn $fn(mut self, rhs: Rhs) -> Self { self.$a_fn(rhs); self }
         }
         impl<
             $($( $lt $( : $clt $(+ $dlt)* )? ),+ ,)?
             Rhs: Into<$type$(< $($lt),+ >)?>
         > std::ops::$a_trait<Rhs> for $type$(< $($lt),+ >)? {
-            fn $a_fn(&mut $self_param, $rhs_param: Rhs) $impl
+            #[inline(always)] fn $a_fn(&mut $self_param, $rhs_param: Rhs) $impl
         }
     };
 }
