@@ -15,4 +15,5 @@ pub mod number_trait;
 pub mod prng;
 pub mod segtree;
 pub mod sscanf;
+pub mod xor_basis;
 pub mod xor_convolution;
