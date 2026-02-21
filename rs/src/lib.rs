@@ -10,6 +10,7 @@ pub mod graph_traits;
 pub mod iord;
 pub mod iterative_segtree;
 pub mod kuhn;
+pub mod lichao_segtree;
 pub mod modint;
 pub mod number_trait;
 pub mod prng;
