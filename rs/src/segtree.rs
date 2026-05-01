@@ -103,25 +103,28 @@ impl<Data: SegTreeData> SegTree<Data> {
 #[allow(dead_code)]
 struct RangeAssignSumQueryData {
     sum: i64,
-    lazy: i64,
+    lazy: Option<i64>,
 }
 
 impl SegTreeData for RangeAssignSumQueryData {
     type FromType = i64;
-    type Lazy = i64;
+    type Lazy = Option<i64>;
 
     fn from(&value: &i64, _pos: usize) -> Self {
-        Self { sum: value, lazy: 0 }
+        Self { sum: value, lazy: None }
     }
     fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
-        Self { sum: lhs.sum + rhs.sum, lazy: 0 }
+        Self { sum: lhs.sum + rhs.sum, lazy: None }
     }
-    fn accept_lazy(&mut self, lazy: i64) {
+    fn accept_lazy(&mut self, lazy: Option<i64>) {
         self.lazy = lazy;
     }
-    fn apply_lazy(&mut self, l: usize, r: usize) -> i64 {
-        self.sum += (r - l) as i64 * self.lazy;
-        mem::replace(&mut self.lazy, 0) // remember to clear lazy
+    fn apply_lazy(&mut self, l: usize, r: usize) -> Option<i64> {
+        let lz = self.lazy.take(); // remember to clear lazy
+        if let Some(val) = lz {
+            self.sum = (r - l) as i64 * val;
+        }
+        lz
     }
 }
 
@@ -161,13 +164,13 @@ mod tests {
 
         assert_eq!(seg_tree.range_query(0, 5).sum, 15);
         assert_eq!(seg_tree.range_query(1, 4).sum, 9);
-        seg_tree.range_upd(1, 4, 2);
-        assert_eq!(seg_tree.range_query(0, 5).sum, 21);
-        assert_eq!(seg_tree.range_query(1, 4).sum, 15);
-        assert_eq!(seg_tree.get(2).sum, 5);
-        seg_tree.point_upd(2, 10);
-        assert_eq!(seg_tree.get(2).sum, 15);
-        assert_eq!(seg_tree.range_query(0, 5).sum, 31);
+        seg_tree.range_upd(1, 4, Some(2));
+        assert_eq!(seg_tree.range_query(0, 5).sum, 12);
+        assert_eq!(seg_tree.range_query(1, 4).sum, 6);
+        assert_eq!(seg_tree.get(2).sum, 2);
+        seg_tree.point_upd(2, Some(10));
+        assert_eq!(seg_tree.get(2).sum, 10);
+        assert_eq!(seg_tree.range_query(0, 5).sum, 20);
     }
 
     #[test]
