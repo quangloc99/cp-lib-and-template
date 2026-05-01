@@ -26,7 +26,7 @@ fn main() {
         DB!();
         dbg!(test_case);
         let n: usize = scan.next();
-        let a: Vec<usize> = (0..n).map(|_| scan.next()).collect();
+        let _a: Vec<usize> = (0..n).map(|_| scan.next()).collect();
     }
 }
 

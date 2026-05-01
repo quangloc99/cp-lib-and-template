@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //// This template has unroll operation. Remove that for better performance
 
 const INF: i64 = 10i64.pow(15);

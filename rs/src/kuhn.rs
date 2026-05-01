@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::graph_traits::Graph;
 
 struct KuhnMatcher {
