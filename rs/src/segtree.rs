@@ -99,38 +99,65 @@ impl<Data: SegTreeData> SegTree<Data> {
     }
 }
 
+#[derive(Default, Clone, Copy, Debug)]
+#[allow(dead_code)]
+struct RangeAssignSumQueryData {
+    sum: i64,
+    lazy: i64,
+}
+
+impl SegTreeData for RangeAssignSumQueryData {
+    type FromType = i64;
+    type Lazy = i64;
+
+    fn from(&value: &i64, _pos: usize) -> Self {
+        Self { sum: value, lazy: 0 }
+    }
+    fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
+        Self { sum: lhs.sum + rhs.sum, lazy: 0 }
+    }
+    fn accept_lazy(&mut self, lazy: i64) {
+        self.lazy = lazy;
+    }
+    fn apply_lazy(&mut self, l: usize, r: usize) -> i64 {
+        self.sum += (r - l) as i64 * self.lazy;
+        mem::replace(&mut self.lazy, 0) // remember to clear lazy
+    }
+}
+
+#[derive(Default, Clone, Copy, Debug)]
+#[allow(dead_code)]
+struct RangeIncSumQueryData {
+    sum: i64,
+    lazy: i64,
+}
+
+impl SegTreeData for RangeIncSumQueryData {
+    type FromType = i64;
+    type Lazy = i64;
+
+    fn from(&value: &i64, _pos: usize) -> Self {
+        Self { sum: value, lazy: 0 }
+    }
+    fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
+        Self { sum: lhs.sum + rhs.sum, lazy: 0 }
+    }
+    fn accept_lazy(&mut self, lazy: i64) {
+        self.lazy += lazy;
+    }
+    fn apply_lazy(&mut self, l: usize, r: usize) -> i64 {
+        self.sum += (r - l) as i64 * self.lazy;
+        mem::replace(&mut self.lazy, 0) // remember to clear lazy
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn seg_tree_test() {
-        #[derive(Default, Clone, Copy, Debug)]
-        struct Data {
-            sum: i64,
-            lazy: i64,
-        }
-
-        impl SegTreeData for Data {
-            type FromType = i64;
-            type Lazy = i64;
-
-            fn from(&value: &i64, _pos: usize) -> Self {
-                Self { sum: value, lazy: 0 }
-            }
-            fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
-                Self { sum: lhs.sum + rhs.sum, lazy: 0 }
-            }
-            fn accept_lazy(&mut self, lazy: i64) {
-                self.lazy += lazy;
-            }
-            fn apply_lazy(&mut self, l: usize, r: usize) -> i64 {
-                self.sum += (r - l) as i64 * self.lazy;
-                mem::replace(&mut self.lazy, 0) // remember to clear lazy
-            }
-        }
-
-        let mut seg_tree = SegTree::<Data>::build(&vec![1, 2, 3, 4, 5]);
+    fn seg_tree_test_range_assign_sum_query() {
+        let mut seg_tree = SegTree::<RangeAssignSumQueryData>::build(&vec![1, 2, 3, 4, 5]);
 
         assert_eq!(seg_tree.range_query(0, 5).sum, 15);
         assert_eq!(seg_tree.range_query(1, 4).sum, 9);
@@ -141,5 +168,36 @@ mod tests {
         seg_tree.point_upd(2, 10);
         assert_eq!(seg_tree.get(2).sum, 15);
         assert_eq!(seg_tree.range_query(0, 5).sum, 31);
+    }
+
+    #[test]
+    fn seg_tree_test_range_inc_sum_query() {
+        for testcase in 0..1000 {
+            let mut prng = crate::prng::PRNG::new(testcase);
+            let n = prng.rand_usize(1..=100);
+            let val_range = -100i64..=100i64;
+            let mut values = (0..n).map(|_| prng.rand_i64(val_range.clone())).collect::<Vec<_>>();
+            let mut segtree = SegTree::<RangeIncSumQueryData>::build(&values);
+
+            for _ in 0..500 {
+                let mut l = prng.rand_usize(..n);
+                let mut r = prng.rand_usize(..n);
+                if l > r {
+                    (l, r) = (r, l);
+                }
+                r += 1;
+                if prng.rand_usize(..2) == 0 {
+                    let inc_val = prng.rand_i64(val_range.clone());
+                    segtree.range_upd(l, r, inc_val);
+                    for i in l..r {
+                        values[i] += inc_val;
+                    }
+                } else {
+                    let segtree_sum = segtree.range_query(l, r).sum;
+                    let expected_sum = values[l..r].iter().sum::<i64>();
+                    assert_eq!(segtree_sum, expected_sum);
+                }
+            }
+        }
     }
 }
