@@ -159,11 +159,11 @@ pub mod test_fft {
     fn _test(num_cases: usize, n_max: usize, val_max: usize) {
         let fft = FFT::<Mint>::new(20);
         for testcase in 0..num_cases {
-            let mut rng = create_prng(testcase as u64);
-            let n = rng() as usize % n_max;
-            let m = rng() as usize % n_max;
-            let a: Vec<Mint> = (0..n).map(|_| Mint::from(rng() as usize % val_max)).collect();
-            let b: Vec<Mint> = (0..m).map(|_| Mint::from(rng() as usize % val_max)).collect();
+            let mut rng = PRNG::new(testcase);
+            let n = rng.rand_usize(..n_max);
+            let m = rng.rand_usize(..n_max);
+            let a: Vec<Mint> = (0..n).map(|_| Mint::from(rng.rand_usize(..val_max))).collect();
+            let b: Vec<Mint> = (0..m).map(|_| Mint::from(rng.rand_usize(..val_max))).collect();
             let expected = checker_convolution(&a, &b);
             let actual = fft.convolution(a.clone(), b.clone());
             let actual_fft_only = fft.fft_convolution(a.clone(), b.clone());

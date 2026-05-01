@@ -116,13 +116,13 @@ mod test {
 
     #[test]
     fn test_shl() {
-        let mut rng = prng::create_prng(0);
+        let mut rng = prng::PRNG::new(0);
         for _test_case in 0..5000 {
-            let num_words = (rng() % 128 + 1) as usize;
+            let num_words = rng.rand_usize(1..=128);
             let mut bs = BitSet::new(num_words);
-            let n = (rng() % 100) as usize;
-            let mut values = (0..n).map(|_| rng() as usize % bs.num_bits()).collect::<Vec<_>>();
-            let shift = rng() as usize % (bs.num_bits() + 1);
+            let n = rng.rand_usize(..100);
+            let mut values = (0..n).map(|_| rng.rand_usize(..bs.num_bits())).collect::<Vec<_>>();
+            let shift = rng.rand_usize(..=bs.num_bits());
 
             for &x in &values {
                 bs.set_bit(x);
@@ -141,13 +141,13 @@ mod test {
 
     #[test]
     fn test_shr() {
-        let mut rng = prng::create_prng(1);
+        let mut rng = prng::PRNG::new(1);
         for _test_case in 0..5000 {
-            let num_words = (rng() % 128 + 1) as usize;
+            let num_words = rng.rand_usize(1..=128);
             let mut bs = BitSet::new(num_words);
-            let n = (rng() % 100) as usize;
-            let mut values = (0..n).map(|_| rng() as usize % bs.num_bits()).collect::<Vec<_>>();
-            let shift = rng() as usize % (bs.num_bits() + 1);
+            let n = rng.rand_usize(..100);
+            let mut values = (0..n).map(|_| rng.rand_usize(..bs.num_bits())).collect::<Vec<_>>();
+            let shift = rng.rand_usize(..=bs.num_bits());
 
             for &x in &values {
                 bs.set_bit(x);

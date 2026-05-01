@@ -143,15 +143,15 @@ pub mod test {
     #[test]
     pub fn test_solve_congruent_2_random() {
         use crate::prng::*;
-        let mut rng = create_prng(0);
+        let mut rng = PRNG::new(0);
         const M: usize = 1000;
         for _ in 0..100 {
-            let a = rng() as usize % M + 1;
-            let b = rng() as usize % M + 1;
-            let m1 = rng() as usize % M + 1;
-            let r = rng() as usize % M;
-            let m2 = rng() as usize % M + 1;
-            let c = rng() as usize % M;
+            let a = rng.rand_usize(1..=M);
+            let b = rng.rand_usize(1..=M);
+            let m1 = rng.rand_usize(1..=M);
+            let r = rng.rand_usize(..M);
+            let m2 = rng.rand_usize(1..=M);
+            let c = rng.rand_usize(..M);
             congruent_2_test(a, r, m1, b, c, m2);
         }
     }

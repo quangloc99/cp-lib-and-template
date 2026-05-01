@@ -23,10 +23,7 @@ struct SegTree<Data: SegTreeData> {
 #[allow(dead_code)]
 impl<Data: SegTreeData> SegTree<Data> {
     pub fn new(n: usize) -> Self {
-        Self {
-            n,
-            data: vec![Data::default(); 4 * n],
-        }
+        Self { n, data: vec![Data::default(); 4 * n] }
     }
 
     pub fn build(arr: &[Data::FromType]) -> Self {
@@ -119,19 +116,13 @@ mod tests {
             type Lazy = i64;
 
             fn from(&value: &i64, _pos: usize) -> Self {
-                Self {
-                    sum: value,
-                    lazy: 0,
-                }
+                Self { sum: value, lazy: 0 }
             }
             fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
-                Self {
-                    sum: lhs.sum + rhs.sum,
-                    lazy: 0,
-                }
+                Self { sum: lhs.sum + rhs.sum, lazy: 0 }
             }
             fn accept_lazy(&mut self, lazy: i64) {
-                self.lazy = lazy;
+                self.lazy += lazy;
             }
             fn apply_lazy(&mut self, l: usize, r: usize) -> i64 {
                 self.sum += (r - l) as i64 * self.lazy;

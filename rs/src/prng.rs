@@ -1,14 +1,35 @@
 #![allow(dead_code)]
-pub fn create_prng(seed: u64) -> impl FnMut() -> u64 {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::Hasher;
-    let mut hasher = DefaultHasher::new();
-    hasher.write_u64(seed);
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
+use std::ops::{Bound, RangeBounds};
+pub struct PRNG(DefaultHasher);
 
-    move || {
-        let x = hasher.finish();
-        hasher.write_u64(x);
+impl PRNG {
+    pub fn new(seed: usize) -> Self {
+        let mut h = DefaultHasher::new();
+        h.write_usize(seed);
+        Self(h)
+    }
+
+    pub fn next(&mut self) -> usize {
+        let x = self.0.finish() as usize;
+        self.0.write_usize(x);
         return x;
+    }
+
+    pub fn rand_usize(&mut self, r: impl RangeBounds<usize>) -> usize {
+        let start = match r.start_bound() {
+            Bound::Included(&s) => s,
+            Bound::Excluded(&s) => s + 1,
+            Bound::Unbounded => 0,
+        };
+        let end = match r.end_bound() {
+            Bound::Included(&e) => e + 1,
+            Bound::Excluded(&e) => e,
+            Bound::Unbounded => usize::MAX,
+        };
+        assert!(start < end, "rand_usize: start < end");
+        self.next() % (end - start) + start
     }
 }
 
@@ -23,29 +44,40 @@ mod test {
 
     #[test]
     fn test_same_seed() {
-        let mut prng1 = create_prng(42);
-        let mut prng2 = create_prng(42);
+        let mut prng1 = PRNG::new(42);
+        let mut prng2 = PRNG::new(42);
 
         for _ in 0..100 {
-            assert_eq!(prng1(), prng2());
+            assert_eq!(prng1.next(), prng2.next());
         }
     }
 
     #[test]
     fn test_different_seed() {
-        let mut prng1 = create_prng(42);
-        let mut prng2 = create_prng(43);
+        let mut prng1 = PRNG::new(42);
+        let mut prng2 = PRNG::new(43);
 
         for _ in 0..100 {
-            assert_ne!(prng1(), prng2());
+            assert_ne!(prng1.next(), prng2.next());
         }
     }
 
     #[test]
     fn test_random_enough_value() {
-        let set: std::collections::HashSet<u64> =
-            std::iter::repeat_with(create_prng(42)).take(10000).collect();
+        let mut prng = PRNG::new(42);
+        let set: std::collections::HashSet<usize> =
+            std::iter::repeat_with(|| prng.next()).take(10000).collect();
         assert_eq!(set.len(), 10000);
+    }
+
+    #[test]
+    fn test_rand_usize() {
+        let mut prng = PRNG::new(42);
+        let r = 69..420;
+        for _ in 0..1000 {
+            let val = prng.rand_usize(r.clone());
+            assert!(r.contains(&val));
+        }
     }
 
     #[test]

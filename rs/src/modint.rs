@@ -157,13 +157,13 @@ mod test {
         #[test]
         fn test_wrap_unwrap() {
             type MintType = super::ModInt<super::MontgomeryModulus<998_244_353>>;
-            use crate::prng::create_prng;
-            let mut rng = create_prng(0);
+            use crate::prng::PRNG;
+            let mut rng = PRNG::new(0);
 
             for val in [0, 1, 2, 10, 20, 100, 123456]
                 .iter()
                 .copied()
-                .chain((0..1000).map(|_| rng() % 998_244_353))
+                .chain((0..1000).map(|_| rng.rand_usize(..998_244_353)))
             {
                 let wrapped = MintType::from(val);
                 let unwrapped = wrapped.inner();
