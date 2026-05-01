@@ -4,6 +4,23 @@ use std::hash::Hasher;
 use std::ops::{Bound, RangeBounds};
 pub struct PRNG(DefaultHasher);
 
+macro_rules! get_bound {
+    ($r: ident, $t: ident) => {{
+        let start = match $r.start_bound() {
+            Bound::Included(&s) => s,
+            Bound::Excluded(&s) => s + 1,
+            Bound::Unbounded => $t::MIN,
+        };
+        let end = match $r.end_bound() {
+            Bound::Included(&e) => e + 1,
+            Bound::Excluded(&e) => e,
+            Bound::Unbounded => $t::MAX,
+        };
+        assert!(start < end, "rand_usize: start < end");
+        (start, end)
+    }};
+}
+
 impl PRNG {
     pub fn new(seed: usize) -> Self {
         let mut h = DefaultHasher::new();
@@ -18,18 +35,14 @@ impl PRNG {
     }
 
     pub fn rand_usize(&mut self, r: impl RangeBounds<usize>) -> usize {
-        let start = match r.start_bound() {
-            Bound::Included(&s) => s,
-            Bound::Excluded(&s) => s + 1,
-            Bound::Unbounded => 0,
-        };
-        let end = match r.end_bound() {
-            Bound::Included(&e) => e + 1,
-            Bound::Excluded(&e) => e,
-            Bound::Unbounded => usize::MAX,
-        };
-        assert!(start < end, "rand_usize: start < end");
+        let (start, end) = get_bound!(r, usize);
         self.next() % (end - start) + start
+    }
+
+    pub fn rand_i64(&mut self, r: impl RangeBounds<i64>) -> i64 {
+        let (start, end) = get_bound!(r, i64);
+        let len = end.wrapping_sub(start) as usize;
+        (self.next() % len).wrapping_add_signed(start as isize) as i64
     }
 }
 
