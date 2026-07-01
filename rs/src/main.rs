@@ -12,6 +12,8 @@ static mut DBG_INDENT: usize = 0;
 macro_rules! DB { () => { let _debug_block = DBBlock::new(); }; }
 macro_rules! eprintln { ($($arg:tt)*) => { if cfg!(LOCAL) { unsafe{std::eprint!("{}", "  ".repeat(DBG_INDENT));} std::eprintln!($($arg)*); } }; }
 macro_rules! dbg { ($($arg:expr),*) => { eprintln!(concat!($("[", stringify!($arg), " = {:?}] "),*) $(, $arg)*) }}
+macro_rules! wrln { ($writer: expr, $($arg:expr),*) => {std::writeln!($writer, $($arg,)*).unwrap()}}
+macro_rules! wr { ($writer: expr, $($arg:expr),*) => {std::write!($writer, $($arg,)*).unwrap()}}
 
 fn main() {
     let mut scan = Scan::new();
@@ -26,7 +28,9 @@ fn main() {
         DB!();
         dbg!(test_case);
         let n: usize = scan.next();
-        let _a: Vec<usize> = (0..n).map(|_| scan.next()).collect();
+        let a: Vec<usize> = (0..n).map(|_| scan.next()).collect();
+
+        wrln!(writer, "{}", a.iter().sum::<usize>());
     }
 }
 
