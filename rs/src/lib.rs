@@ -6,6 +6,7 @@ pub mod dsu_rollback;
 pub mod exgcd;
 pub mod fenwick;
 pub mod fft;
+pub mod generators;
 pub mod graph_traits;
 pub mod iord;
 pub mod iterative_segtree;
