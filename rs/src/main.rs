@@ -36,56 +36,36 @@ fn main() {
 
 ////////////////////////////////////////////////////////////////////////////////
 //{{{
-struct Scan {
-    stdin: std::io::StdinLock<'static>,
-    buff: Vec<u8>,
-    pos: usize,
-}
+struct Scan(std::io::StdinLock<'static>, Vec<u8>, usize);
+
 #[allow(dead_code)]
 #[allow(unused_variables)]
 impl Scan {
     fn new() -> Self {
-        return Self { stdin: std::io::stdin().lock(), buff: vec![], pos: 0 };
+        Self(std::io::stdin().lock(), Vec::with_capacity(32), 0)
     }
 
     fn next_token(&mut self) -> Option<&[u8]> {
-        while self.pos < self.buff.len() && self.buff[self.pos].is_ascii_whitespace() {
-            self.pos += 1;
-        }
-        if self.pos >= self.buff.len() {
-            self.buff.clear();
-            self.pos = 0;
-            if self.stdin.read_until(b'\n', &mut self.buff).is_err() {
-                return None;
-            }
+        let not_ws = |c: &u8| !c.is_ascii_whitespace();
+        let Some(skip) = self.1[self.2..].iter().position(not_ws) else {
+            self.1.clear();
+            self.0.read_until(b'\n', &mut self.1).ok()?;
+            self.2 = 0;
             return self.next_token();
-        }
-        let start = self.pos;
-        while self.pos < self.buff.len() && !self.buff[self.pos].is_ascii_whitespace() {
-            self.pos += 1;
-        }
-        let token = &self.buff[start..self.pos];
-        return Some(token);
+        };
+        let start = self.2 + skip;
+        self.2 += self.1[start..].iter().take_while(|&c| not_ws(c)).count();
+        Some(&self.1[start..self.2])
     }
 
     fn next<T: FromStr>(&mut self) -> T {
-        return self.next_opt().unwrap();
-    }
-
-    fn next_opt<T: FromStr>(&mut self) -> Option<T> {
-        let token = self.next_token()?;
-        let s = unsafe { std::str::from_utf8_unchecked(token) };
-        return s.parse::<T>().ok();
+        let token = self.next_token().unwrap();
+        unsafe { std::str::from_utf8_unchecked(token).parse::<T>().ok() }.unwrap()
     }
 
     fn read_line(&mut self) -> Option<String> {
         let mut line = String::new();
-        return self.stdin.read_line(&mut line).map(|_| line).ok();
-    }
-
-    // empty line will be consumed too
-    fn read_line_till_empty(&mut self) -> Option<String> {
-        self.read_line().filter(|line| !line.is_empty())
+        self.0.read_line(&mut line).map(|_| line).ok()
     }
 }
 
