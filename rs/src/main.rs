@@ -54,7 +54,7 @@ impl Scan {
             return self.next_token();
         };
         let start = self.2 + skip;
-        self.2 += self.1[start..].iter().take_while(|&c| not_ws(c)).count();
+        self.2 = start + self.1[start..].iter().take_while(|&c| not_ws(c)).count();
         Some(&self.1[start..self.2])
     }
 
