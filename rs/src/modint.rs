@@ -1,7 +1,33 @@
+// https://stackoverflow.com/a/61189128
+// limitation: can not accept `const` generics
+// see modint.rs for example usage
+#[macro_export]
+macro_rules! def_op {
+    (
+        $type:ident $(::< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)?
+        : $trait:ident :: $fn:ident | $a_trait:ident :: $a_fn:ident
+        => (&mut $self_param: ident, $rhs_param: ident) $impl:block
+    ) => {
+        impl<
+            $($( $lt$( : $clt$(+ $dlt)* )? ,)+ )?
+            Rhs: Into<$type$(< $($lt),+ >)?>
+        > std::ops::$trait<Rhs> for $type$(< $($lt),+ >)? {
+            type Output = Self;
+            #[inline(always)] fn $fn(mut self, rhs: Rhs) -> Self { self.$a_fn(rhs); self }
+        }
+        impl<
+            $($( $lt $( : $clt $(+ $dlt)* )? ),+ ,)?
+            Rhs: Into<$type$(< $($lt),+ >)?>
+        > std::ops::$a_trait<Rhs> for $type$(< $($lt),+ >)? {
+            #[inline(always)] fn $a_fn(&mut $self_param, $rhs_param: Rhs) $impl
+        }
+    };
+}
+
 #[rustfmt::skip]
+#[allow(dead_code)]
 pub mod modint {
     use std::ops::*;
-    use crate::def_op;
 
     pub trait Modulus: Clone + Copy + PartialEq + Eq + Default {
         fn m() -> u32;
@@ -14,37 +40,10 @@ pub mod modint {
     pub struct ConstModulus<const M: u32>;
     impl<const M: u32> Modulus for ConstModulus<M> { fn m() -> u32{ M } }
 
-    #[derive(Clone, Copy, PartialEq, Eq, Default)]
-    pub struct MontgomeryModulus<const M: u32>;
-    impl<const M: u32> MontgomeryModulus<M> {
-        pub const M_U64: u64 = M as u64;
-        pub const B: u64 = 32;
-        pub const R: u64 = (1u64 << Self::B) % Self::M_U64;
-        pub const R2: u64 = (Self::R * Self::R) % Self::M_U64;
-        pub const MASK: u64 = (1u64 << Self::B) - 1;
-        pub const INV_M: u64 = {
-            let (mut x, mut y) = (1u32, 0u32);
-            while x != y { y = x; x = x.wrapping_mul(2u32.wrapping_sub(M.wrapping_mul(x))); }
-            x as u64
-        };
-    }
-    impl<const M: u32> Modulus for MontgomeryModulus<M> {
-        fn m() -> u32{ M }
-        fn wrap(x: u64) -> u32 { Self::reduce((x % Self::M_U64).wrapping_mul(Self::R2)) }
-        fn unwrap(x: u32) -> u32 { Self::reduce(x as u64) }
-        fn reduce(x: u64) -> u32 {
-            let q = ((x & Self::MASK) * Self::INV_M) & Self::MASK;
-            let mut r = x.wrapping_sub(q * Self::M_U64) >> Self::B;
-            if r >= Self::M_U64 { r = r.wrapping_add(Self::M_U64); }
-            r as u32
-        }
-    }
-
     #[repr(C)]
     #[derive(Clone, Copy, Eq, PartialEq, Default)]
     pub struct ModInt<Mod: Modulus>(pub u32, pub Mod);
 
-    #[allow(dead_code)]
     impl<Mod: Modulus> ModInt<Mod> {
         pub fn m() -> u32{ Mod::m() }
         pub fn raw(x: u32) -> Self { Self(x, Mod::default()) }
@@ -93,13 +92,52 @@ pub mod modint {
 use modint::*;
 
 #[allow(dead_code)]
-type Mint = ModInt<MontgomeryModulus<998_244_353>>;
-// type Mint = ModInt<ConstModulus<998_244_353>>;
+type Mint = ModInt<ConstModulus<998_244_353>>;
 // type Mint = ModInt<ConstModulus<1_000_000_007>>;
+
+////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub struct MontgomeryModulus<const M: u32>;
+impl<const M: u32> MontgomeryModulus<M> {
+    pub const M_U64: u64 = M as u64;
+    pub const B: u64 = 32;
+    pub const R: u64 = (1u64 << Self::B) % Self::M_U64;
+    pub const R2: u64 = (Self::R * Self::R) % Self::M_U64;
+    pub const MASK: u64 = (1u64 << Self::B) - 1;
+    pub const INV_M: u64 = {
+        let (mut x, mut y) = (1u32, 0u32);
+        while x != y {
+            y = x;
+            x = x.wrapping_mul(2u32.wrapping_sub(M.wrapping_mul(x)));
+        }
+        x as u64
+    };
+}
+impl<const M: u32> Modulus for MontgomeryModulus<M> {
+    fn m() -> u32 {
+        M
+    }
+    fn wrap(x: u64) -> u32 {
+        Self::reduce((x % Self::M_U64).wrapping_mul(Self::R2))
+    }
+    fn unwrap(x: u32) -> u32 {
+        Self::reduce(x as u64)
+    }
+    fn reduce(x: u64) -> u32 {
+        let q = ((x & Self::MASK) * Self::INV_M) & Self::MASK;
+        let mut r = x.wrapping_sub(q * Self::M_U64) >> Self::B;
+        if r >= Self::M_U64 {
+            r = r.wrapping_add(Self::M_U64);
+        }
+        r as u32
+    }
+}
+// type Mint = ModInt<MontgomeryModulus<998_244_353>>;
 
 #[cfg(test)]
 mod test {
-    use super::modint::*;
+    use super::*;
 
     macro_rules! test_cases {
         ($mint: ty) => {

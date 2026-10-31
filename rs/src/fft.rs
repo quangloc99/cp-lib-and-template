@@ -1,4 +1,4 @@
-use crate::modint::modint::*;
+use crate::modint::{modint::*, *};
 use crate::number_trait::*;
 
 pub trait FFTOmegaNum: Number {
@@ -162,12 +162,20 @@ pub mod test_fft {
             let mut rng = PRNG::new(testcase);
             let n = rng.rand_usize(..n_max);
             let m = rng.rand_usize(..n_max);
-            let a: Vec<Mint> = (0..n).map(|_| Mint::from(rng.rand_usize(..val_max))).collect();
-            let b: Vec<Mint> = (0..m).map(|_| Mint::from(rng.rand_usize(..val_max))).collect();
+            let a: Vec<Mint> = (0..n)
+                .map(|_| Mint::from(rng.rand_usize(..val_max)))
+                .collect();
+            let b: Vec<Mint> = (0..m)
+                .map(|_| Mint::from(rng.rand_usize(..val_max)))
+                .collect();
             let expected = checker_convolution(&a, &b);
             let actual = fft.convolution(a.clone(), b.clone());
             let actual_fft_only = fft.fft_convolution(a.clone(), b.clone());
-            assert_eq!(expected, actual, "testing\na={:?}\nb={:?}\ntestcase={}", a, b, testcase);
+            assert_eq!(
+                expected, actual,
+                "testing\na={:?}\nb={:?}\ntestcase={}",
+                a, b, testcase
+            );
             assert_eq!(
                 expected, actual_fft_only,
                 "testing (fft only)\na={:?}\nb={:?}\ntestcase={}",
