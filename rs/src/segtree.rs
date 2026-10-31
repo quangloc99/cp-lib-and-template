@@ -1,47 +1,40 @@
-use std::*;
+use std::{cmp::*, *};
 
 #[allow(dead_code)]
 trait SegTreeData: Default + Copy {
-    type FromType;
     type Lazy: Copy;
-
-    fn from(value: &Self::FromType, pos: usize) -> Self;
     fn merge(rhs: &Self, lhs: &Self, l: usize, r: usize) -> Self;
     fn accept_lazy(&mut self, lazy: Self::Lazy);
     fn apply_lazy(&mut self, l: usize, r: usize) -> Self::Lazy;
-    fn none() -> Self {
-        Self::default()
-    }
 }
 
 #[allow(dead_code)]
 struct SegTree<Data: SegTreeData> {
-    n: usize,
     data: Vec<Data>,
 }
 
 #[allow(dead_code)]
 impl<Data: SegTreeData> SegTree<Data> {
-    pub fn new(n: usize) -> Self {
-        Self { n, data: vec![Data::default(); 4 * n] }
-    }
-
-    pub fn build(arr: &[Data::FromType]) -> Self {
-        let mut new_tree = Self::new(arr.len());
-        new_tree.build_rec(arr, 1, 0, new_tree.n);
-
+    pub fn new(n: usize, val_fn: impl Fn(usize) -> Data) -> Self {
+        let data = vec![Data::default(); 4 * n];
+        let mut new_tree = Self { data };
+        new_tree.build(&val_fn, 1, 0, n);
         new_tree
     }
 
-    fn build_rec(&mut self, arr: &[Data::FromType], i: usize, l: usize, r: usize) {
+    fn build(&mut self, val_fn: &impl Fn(usize) -> Data, i: usize, l: usize, r: usize) {
         if r - l == 1 {
-            self.data[i] = Data::from(&arr[l], l);
+            self.data[i] = val_fn(l);
             return;
         }
         let mid = (l + r) / 2;
-        self.build_rec(arr, 2 * i, l, mid);
-        self.build_rec(arr, 2 * i + 1, mid, r);
+        self.build(val_fn, 2 * i, l, mid);
+        self.build(val_fn, 2 * i + 1, mid, r);
         self.data[i] = Data::merge(&self.data[2 * i], &self.data[2 * i + 1], l, r);
+    }
+
+    fn n(&self) -> usize {
+        self.data.len() / 4
     }
 
     fn push_lazy(&mut self, i: usize, l: usize, r: usize) {
@@ -53,49 +46,48 @@ impl<Data: SegTreeData> SegTree<Data> {
     }
 
     pub fn range_upd(&mut self, from: usize, to: usize, val: Data::Lazy) {
-        self.upd(from, to, val, 1, 0, self.n);
+        self.upd_inner(from, to, val, 1, 0, self.n());
     }
 
     pub fn point_upd(&mut self, pos: usize, val: Data::Lazy) {
-        self.upd(pos, pos + 1, val, 1, 0, self.n);
+        self.range_upd(pos, pos + 1, val);
     }
 
-    fn upd(&mut self, from: usize, to: usize, val: Data::Lazy, i: usize, l: usize, r: usize) {
-        self.push_lazy(i, l, r);
-        if from >= r || l >= to {
-            return;
-        }
+    fn upd_inner(&mut self, from: usize, to: usize, val: Data::Lazy, i: usize, l: usize, r: usize) {
         if from <= l && r <= to {
             self.data[i].accept_lazy(val);
             self.push_lazy(i, l, r);
             return;
         }
-        let mid = (l + r) / 2;
-        self.upd(from, to, val, 2 * i, l, mid);
-        self.upd(from, to, val, 2 * i + 1, mid, r);
-        self.data[i] = Data::merge(&self.data[2 * i], &self.data[2 * i + 1], l, r);
+        self.push_lazy(i, l, r);
+        if from < r && l < to {
+            let mid = (l + r) / 2;
+            self.upd_inner(from, to, val, 2 * i, l, mid);
+            self.upd_inner(from, to, val, 2 * i + 1, mid, r);
+            self.data[i] = Data::merge(&self.data[2 * i], &self.data[2 * i + 1], l, r);
+        }
     }
 
-    pub fn range_query(&mut self, from: usize, to: usize) -> Data {
-        self.query(from, to, 1, 0, self.n)
+    pub fn query(&mut self, from: usize, to: usize) -> Data {
+        self.query_inner(from, to, 1, 0, self.n())
     }
 
     pub fn get(&mut self, pos: usize) -> Data {
-        self.query(pos, pos + 1, 1, 0, self.n)
+        self.query(pos, pos + 1)
     }
 
-    fn query(&mut self, from: usize, to: usize, i: usize, l: usize, r: usize) -> Data {
+    fn query_inner(&mut self, from: usize, to: usize, i: usize, l: usize, r: usize) -> Data {
         self.push_lazy(i, l, r);
         if from >= r || l >= to {
-            return Data::none();
+            Data::default()
+        } else if from <= l && r <= to {
+            self.data[i]
+        } else {
+            let mid = (l + r) / 2;
+            let u = &self.query_inner(from, to, 2 * i, l, mid);
+            let v = &self.query_inner(from, to, 2 * i + 1, mid, r);
+            Data::merge(u, v, max(l, from), min(r, to))
         }
-        if from <= l && r <= to {
-            return self.data[i];
-        }
-        let mid = (l + r) / 2;
-        let u = &self.query(from, to, 2 * i, l, mid);
-        let v = &self.query(from, to, 2 * i + 1, mid, r);
-        Data::merge(u, v, l, r)
     }
 }
 
@@ -107,14 +99,13 @@ struct RangeAssignSumQueryData {
 }
 
 impl SegTreeData for RangeAssignSumQueryData {
-    type FromType = i64;
     type Lazy = Option<i64>;
 
-    fn from(&value: &i64, _pos: usize) -> Self {
-        Self { sum: value, lazy: None }
-    }
     fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
-        Self { sum: lhs.sum + rhs.sum, lazy: None }
+        Self {
+            sum: lhs.sum + rhs.sum,
+            lazy: None,
+        }
     }
     fn accept_lazy(&mut self, lazy: Option<i64>) {
         self.lazy = lazy;
@@ -136,14 +127,13 @@ struct RangeIncSumQueryData {
 }
 
 impl SegTreeData for RangeIncSumQueryData {
-    type FromType = i64;
     type Lazy = i64;
 
-    fn from(&value: &i64, _pos: usize) -> Self {
-        Self { sum: value, lazy: 0 }
-    }
     fn merge(lhs: &Self, rhs: &Self, _l: usize, _r: usize) -> Self {
-        Self { sum: lhs.sum + rhs.sum, lazy: 0 }
+        Self {
+            sum: lhs.sum + rhs.sum,
+            lazy: 0,
+        }
     }
     fn accept_lazy(&mut self, lazy: i64) {
         self.lazy += lazy;
@@ -160,17 +150,21 @@ mod tests {
 
     #[test]
     fn seg_tree_test_range_assign_sum_query() {
-        let mut seg_tree = SegTree::<RangeAssignSumQueryData>::build(&vec![1, 2, 3, 4, 5]);
+        let mut seg_tree =
+            SegTree::<RangeAssignSumQueryData>::new(5, |i| RangeAssignSumQueryData {
+                sum: (i + 1) as i64,
+                lazy: None,
+            });
 
-        assert_eq!(seg_tree.range_query(0, 5).sum, 15);
-        assert_eq!(seg_tree.range_query(1, 4).sum, 9);
+        assert_eq!(seg_tree.query(0, 5).sum, 15);
+        assert_eq!(seg_tree.query(1, 4).sum, 9);
         seg_tree.range_upd(1, 4, Some(2));
-        assert_eq!(seg_tree.range_query(0, 5).sum, 12);
-        assert_eq!(seg_tree.range_query(1, 4).sum, 6);
+        assert_eq!(seg_tree.query(0, 5).sum, 12);
+        assert_eq!(seg_tree.query(1, 4).sum, 6);
         assert_eq!(seg_tree.get(2).sum, 2);
         seg_tree.point_upd(2, Some(10));
         assert_eq!(seg_tree.get(2).sum, 10);
-        assert_eq!(seg_tree.range_query(0, 5).sum, 20);
+        assert_eq!(seg_tree.query(0, 5).sum, 20);
     }
 
     #[test]
@@ -179,8 +173,13 @@ mod tests {
             let mut prng = crate::prng::PRNG::new(testcase);
             let n = prng.rand_usize(1..=100);
             let val_range = -100i64..=100i64;
-            let mut values = (0..n).map(|_| prng.rand_i64(val_range.clone())).collect::<Vec<_>>();
-            let mut segtree = SegTree::<RangeIncSumQueryData>::build(&values);
+            let mut values = (0..n)
+                .map(|_| prng.rand_i64(val_range.clone()))
+                .collect::<Vec<_>>();
+            let mut segtree = SegTree::new(n, |i| RangeIncSumQueryData {
+                sum: values[i],
+                lazy: 0,
+            });
 
             for _ in 0..500 {
                 let mut l = prng.rand_usize(..n);
@@ -196,7 +195,7 @@ mod tests {
                         values[i] += inc_val;
                     }
                 } else {
-                    let segtree_sum = segtree.range_query(l, r).sum;
+                    let segtree_sum = segtree.query(l, r).sum;
                     let expected_sum = values[l..r].iter().sum::<i64>();
                     assert_eq!(segtree_sum, expected_sum);
                 }
